@@ -29,3 +29,5 @@ export function useTasks() {
 
   return { tasks, addTask, updateTask, removeTask };
 }
+
+export type TaskState = ReturnType<typeof useTasks>;

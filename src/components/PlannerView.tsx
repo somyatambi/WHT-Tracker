@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useWeek } from '../hooks/useWeek';
-import { useHabits } from '../hooks/useHabits';
-import { useTasks } from '../hooks/useTasks';
+import type { HabitState } from '../hooks/useHabits';
+import type { TaskState } from '../hooks/useTasks';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import type { AppSettings, WeekNote, ChartDataPoint, DonutDataPoint } from '../types';
 import { formatDateId, getStreak, getDisplayWeekRange } from '../utils/dateUtils';
@@ -16,13 +16,15 @@ import { HabitEditModal } from './HabitEditModal';
 
 interface PlannerViewProps {
   settings: AppSettings;
+  habitState: HabitState;
+  taskState: TaskState;
 }
 
-export function PlannerView({ settings }: PlannerViewProps) {
+export function PlannerView({ settings, habitState, taskState }: PlannerViewProps) {
   const weekStartDayNum = settings.weekStartDay === 'sunday' ? 0 : 1;
   const { weekId, currentDate, weekDates, nextWeek, prevWeek, jumpToToday } = useWeek(weekStartDayNum);
-  const { habits, logs, addHabit, removeHabit, reorderHabits, toggleHabit } = useHabits();
-  const { tasks, addTask, updateTask, removeTask } = useTasks();
+  const { habits, logs, addHabit, removeHabit, reorderHabits, toggleHabit } = habitState;
+  const { tasks, addTask, updateTask, removeTask } = taskState;
   const [weekNotesStore, setWeekNotesStore] = useLocalStorage<WeekNote[]>('momentum_week_notes', []);
 
   // Keyboard Navigation

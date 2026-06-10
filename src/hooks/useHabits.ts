@@ -1,7 +1,6 @@
 import { useLocalStorage } from './useLocalStorage';
 import type { Habit, HabitLog } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { formatDateId } from '../utils/dateUtils';
 
 const DEFAULT_HABITS: Habit[] = [
   { id: uuidv4(), name: 'Wake by 6am', order: 0, createdAt: new Date().toISOString() },
@@ -38,3 +37,5 @@ export function useHabits() {
 
   return { habits, logs, addHabit, removeHabit, reorderHabits, toggleHabit };
 }
+
+export type HabitState = ReturnType<typeof useHabits>;

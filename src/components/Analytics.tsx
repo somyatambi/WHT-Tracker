@@ -1,13 +1,18 @@
-import { useHabits } from '../hooks/useHabits';
-import { useTasks } from '../hooks/useTasks';
+import type { HabitState } from '../hooks/useHabits';
+import type { TaskState } from '../hooks/useTasks';
 import { getBestStreak, getStreak, formatDateId } from '../utils/dateUtils';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { format, subDays, eachDayOfInterval } from 'date-fns';
 import { useMemo } from 'react';
 
-export function Analytics() {
-  const { habits, logs } = useHabits();
-  const { tasks } = useTasks();
+interface AnalyticsProps {
+  habitState: HabitState;
+  taskState: TaskState;
+}
+
+export function Analytics({ habitState, taskState }: AnalyticsProps) {
+  const { habits, logs } = habitState;
+  const { tasks } = taskState;
 
   // Streak data
   const streakData = habits.map((h: any) => ({
