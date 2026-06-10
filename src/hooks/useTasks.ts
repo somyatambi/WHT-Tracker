@@ -6,25 +6,27 @@ export function useTasks() {
   const [tasks, setTasks] = useLocalStorage<Task[]>('momentum_tasks', []);
 
   const addTask = (weekId: string, dayDate: string, text: string) => {
-    const dayTasks = tasks.filter(t => t.dayDate === dayDate);
-    const newTask: Task = {
-      id: uuidv4(),
-      weekId,
-      dayDate,
-      text,
-      completed: false,
-      order: dayTasks.length,
-      createdAt: new Date().toISOString()
-    };
-    setTasks([...tasks, newTask]);
+    setTasks(prev => {
+      const dayTasks = prev.filter(t => t.dayDate === dayDate);
+      const newTask: Task = {
+        id: uuidv4(),
+        weekId,
+        dayDate,
+        text,
+        completed: false,
+        order: dayTasks.length,
+        createdAt: new Date().toISOString()
+      };
+      return [...prev, newTask];
+    });
   };
 
   const updateTask = (id: string, updates: Partial<Task>) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, ...updates } : t));
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
   };
 
   const removeTask = (id: string) => {
-    setTasks(tasks.filter(t => t.id !== id));
+    setTasks(prev => prev.filter(t => t.id !== id));
   };
 
   return { tasks, addTask, updateTask, removeTask };
