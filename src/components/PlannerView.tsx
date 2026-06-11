@@ -12,6 +12,7 @@ import { WeekOverview } from './WeekOverview';
 import { HabitTracker } from './HabitTracker';
 import { DayColumn } from './DayColumn';
 import { WeekNotes } from './WeekNotes';
+import { StickyNotes } from './StickyNotes';
 import { HabitEditModal } from './HabitEditModal';
 
 interface PlannerViewProps {
@@ -185,6 +186,8 @@ export function PlannerView({ settings, habitState, taskState }: PlannerViewProp
       </div>
 
       <WeekNotes weekNote={weekNote} updateWeekNote={updateWeekNote} />
+
+      <StickyNotes />
 
       <HabitEditModal
         showEditHabits={showEditHabits}

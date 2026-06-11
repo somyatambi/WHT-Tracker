@@ -39,6 +39,7 @@ export type StorageKeys =
   | 'momentum_habit_logs'
   | 'momentum_tasks'
   | 'momentum_week_notes'
+  | 'momentum_sticky_notes'
   | 'momentum_settings';
 
 export interface ChartDataPoint {
