@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import type { Habit } from '../types';
 
@@ -10,80 +11,88 @@ interface HabitEditModalProps {
 }
 
 export function HabitEditModal({ showEditHabits, setShowEditHabits, habits, addHabit, removeHabit }: HabitEditModalProps) {
+  const [newName, setNewName] = useState('');
+
   if (!showEditHabits) return null;
 
+  const handleAdd = () => {
+    if (newName.trim()) {
+      addHabit(newName.trim());
+      setNewName('');
+    }
+  };
+
   return (
-    <div className="modal-backdrop">
+    <div className="modal-backdrop" onClick={e => { if (e.target === e.currentTarget) setShowEditHabits(false); }}>
       <div className="modal-box">
         {/* Header */}
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           marginBottom: 24,
         }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Edit Habits</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)' }}>Edit Habits</h2>
           <button
             onClick={() => setShowEditHabits(false)}
-            className="ghost-btn"
+            style={{
+              width: 32, height: 32,
+              borderRadius: '50%',
+              background: 'var(--bg-input)',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--text-secondary)',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--danger-light)';
+              e.currentTarget.style.color = 'var(--danger)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'var(--bg-input)';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
           >
-            <X style={{ width: 18, height: 18 }} />
+            <X style={{ width: 16, height: 16 }} />
           </button>
         </div>
 
         {/* Add form */}
-        <form
-          onSubmit={e => {
-            e.preventDefault();
-            const form = e.target as HTMLFormElement;
-            const input = form.elements.namedItem('habitName') as HTMLInputElement;
-            if (input.value.trim()) {
-              addHabit(input.value.trim());
-              input.value = '';
-            }
-          }}
-          style={{ display: 'flex', gap: 10, marginBottom: 24 }}
-        >
+        <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
           <input
-            name="habitName"
-            type="text"
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
             placeholder="New habit name..."
             className="modal-input"
             style={{ flex: 1 }}
+            onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
           />
-          <button type="submit" className="btn-primary" style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '10px 16px', fontSize: 14,
-          }}>
-            <Plus style={{ width: 16, height: 16 }} /> Add
+          <button
+            onClick={handleAdd}
+            className="btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 16px', fontSize: 13 }}
+          >
+            <Plus style={{ width: 15, height: 15 }} /> Add
           </button>
-        </form>
+        </div>
 
         {/* Habit list */}
         <ul style={{
-          listStyle: 'none',
-          padding: 0,
-          margin: 0,
-          maxHeight: 380,
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
+          listStyle: 'none', padding: 0, margin: 0,
+          maxHeight: 380, overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: 8,
         }}>
           {habits.map(habit => (
             <li
               key={habit.id}
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '12px 16px',
-                background: 'var(--bg-elevated)',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border)',
+                background: 'var(--bg-input)',
+                borderRadius: 'var(--radius-md)',
+                border: '1.5px solid var(--border)',
                 transition: 'border-color 0.15s ease',
               }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-hover)'}
+              onMouseEnter={e => e.currentTarget.style.borderColor = '#c7d2fe'}
               onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
             >
               <span style={{ fontWeight: 500, fontSize: 14, color: 'var(--text-primary)' }}>
@@ -92,37 +101,28 @@ export function HabitEditModal({ showEditHabits, setShowEditHabits, habits, addH
               <button
                 onClick={() => removeHabit(habit.id)}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: 4,
-                  borderRadius: 4,
+                  background: 'none', border: 'none',
+                  color: 'var(--text-muted)', cursor: 'pointer',
+                  padding: 6, borderRadius: 6,
                   transition: 'all 0.15s ease',
-                  display: 'flex',
-                  alignItems: 'center',
+                  display: 'flex', alignItems: 'center',
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.color = 'var(--red)';
-                  e.currentTarget.style.background = 'rgba(248,113,113,0.1)';
+                  e.currentTarget.style.color = 'var(--danger)';
+                  e.currentTarget.style.background = 'var(--danger-light)';
                 }}
                 onMouseLeave={e => {
                   e.currentTarget.style.color = 'var(--text-muted)';
                   e.currentTarget.style.background = 'none';
                 }}
               >
-                <Trash2 style={{ width: 16, height: 16 }} />
+                <Trash2 style={{ width: 15, height: 15 }} />
               </button>
             </li>
           ))}
           {habits.length === 0 && (
-            <p style={{
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              padding: 24,
-              fontSize: 14,
-            }}>
-              No habits defined.
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 24, fontSize: 14 }}>
+              No habits yet. Add one above!
             </p>
           )}
         </ul>

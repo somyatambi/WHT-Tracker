@@ -4,77 +4,110 @@ import { useState } from 'react';
 
 interface TaskItemProps {
   task: Task;
+  dayColor: string;
+  dayName: string;
   onUpdateTask: (id: string, updates: Partial<Task>) => void;
   onDeleteTask: (id: string) => void;
-  handleConfetti: (e: React.SyntheticEvent) => void;
 }
 
-export function TaskItem({ task, onUpdateTask, onDeleteTask, handleConfetti }: TaskItemProps) {
+export function TaskItem({ task, dayColor, dayName, onUpdateTask, onDeleteTask }: TaskItemProps) {
   const [hovered, setHovered] = useState(false);
+
+  // Day color at ~12% opacity for pill background
+  const dayColorLight = `${dayColor}1F`;
 
   return (
     <div
       style={{
-        padding: '8px 16px',
+        background: hovered ? 'var(--bg-elevated)' : 'var(--bg-input)',
+        border: hovered ? '1px solid rgba(99,102,241,0.25)' : '1px solid var(--border)',
+        borderRadius: 'var(--radius-md)',
+        padding: '12px 14px',
+        margin: '0 12px 8px',
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         gap: 10,
-        borderBottom: '1px solid rgba(255,255,255,0.03)',
-        transition: 'background 0.1s ease',
-        ...(hovered ? { background: 'rgba(255,255,255,0.02)' } : {}),
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        position: 'relative',
+        ...(hovered ? {
+          boxShadow: 'var(--shadow-xs)',
+          transform: 'translateX(2px)',
+        } : {}),
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Custom checkbox */}
+      {/* Circular checkbox */}
       <div
-        className={`custom-checkbox ${task.completed ? 'checked' : ''}`}
+        className={`task-checkbox ${task.completed ? 'checked' : ''}`}
+        style={{ marginTop: 1 }}
         onClick={e => {
-          if (!task.completed) handleConfetti(e);
+          e.stopPropagation();
           onUpdateTask(task.id, { completed: !task.completed });
         }}
       >
         {task.completed && (
-          <Check style={{ width: 14, height: 14, color: '#000', strokeWidth: 3 }} />
+          <Check style={{ width: 11, height: 11, color: 'white', strokeWidth: 3 }} />
         )}
       </div>
 
-      {/* Task text */}
-      <input
-        value={task.text}
-        onChange={e => onUpdateTask(task.id, { text: e.target.value })}
-        style={{
-          flex: 1,
-          background: 'transparent',
-          border: 'none',
-          outline: 'none',
-          fontSize: 13,
-          fontWeight: 400,
-          color: task.completed ? 'var(--text-muted)' : 'var(--text-primary)',
-          textDecoration: task.completed ? 'line-through' : 'none',
-          transition: 'color 0.15s ease',
-        }}
-      />
+      {/* Task content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <input
+          value={task.text}
+          onChange={e => onUpdateTask(task.id, { text: e.target.value })}
+          style={{
+            width: '100%',
+            background: 'transparent',
+            border: 'none', outline: 'none',
+            fontSize: 13, fontWeight: 500,
+            color: task.completed ? 'var(--text-muted)' : 'var(--text-primary)',
+            textDecoration: task.completed ? 'line-through' : 'none',
+            transition: 'color 0.15s ease',
+            lineHeight: 1.4,
+            fontFamily: "'Inter', sans-serif",
+          }}
+        />
+        {/* Pill badges */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 10, fontWeight: 600,
+            color: dayColor, background: dayColorLight,
+            borderRadius: 99, padding: '2px 8px',
+          }}>
+            {dayName}
+          </span>
+          {task.completed && (
+            <span style={{
+              fontSize: 10, fontWeight: 600,
+              color: 'var(--success)', background: 'var(--success-light)',
+              borderRadius: 99, padding: '2px 8px',
+              display: 'flex', alignItems: 'center', gap: 3,
+            }}>
+              ✓ COMPLETED
+            </span>
+          )}
+        </div>
+      </div>
 
-      {/* Delete button */}
-      <button
-        onClick={() => onDeleteTask(task.id)}
-        style={{
-          background: 'none',
-          border: 'none',
-          color: 'var(--text-muted)',
-          fontSize: 16,
-          cursor: 'pointer',
-          opacity: hovered ? 1 : 0,
-          transition: 'all 0.15s ease',
-          padding: '0 4px',
-          lineHeight: 1,
-        }}
-        onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'}
-        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
-      >
-        ×
-      </button>
+      {/* Delete button (hover only) */}
+      {hovered && (
+        <button
+          onClick={e => { e.stopPropagation(); onDeleteTask(task.id); }}
+          style={{
+            background: 'none', border: 'none',
+            color: 'var(--text-muted)',
+            fontSize: 16, cursor: 'pointer',
+            padding: '0 2px', lineHeight: 1,
+            transition: 'color 0.15s ease', flexShrink: 0,
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+        >
+          ×
+        </button>
+      )}
     </div>
   );
 }

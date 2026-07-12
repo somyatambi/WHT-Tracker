@@ -1,8 +1,8 @@
-import { TaskItem } from './TaskItem';
-import { isPast, isFuture, format } from 'date-fns';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { format } from 'date-fns';
 import confetti from 'canvas-confetti';
 import type { Task } from '../types';
+import { TaskItem } from './TaskItem';
 
 interface DayColumnProps {
   date: Date;
@@ -13,208 +13,264 @@ interface DayColumnProps {
   onUpdateTask: (id: string, updates: Partial<Task>) => void;
   onDeleteTask: (id: string) => void;
   animationDelay?: number;
+  addToast: (message: string, type?: 'success' | 'warning' | 'error' | 'info') => void;
 }
 
-function ProgressRing({ pct }: { pct: number }) {
-  const r = 16;
-  const circumference = 2 * Math.PI * r;
-  const offset = circumference - (pct / 100) * circumference;
+const DAY_COLORS: Record<string, string> = {
+  Sun: '#f43f5e',
+  Mon: '#8b5cf6',
+  Tue: '#3b82f6',
+  Wed: '#10b981',
+  Thu: '#f59e0b',
+  Fri: '#ec4899',
+  Sat: '#06b6d4',
+};
 
-  return (
-    <svg width="40" height="40" viewBox="0 0 40 40" style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx="20" cy="20" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
-      <circle
-        cx="20" cy="20" r={r}
-        fill="none"
-        stroke="var(--accent)"
-        strokeWidth="3"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        strokeLinecap="round"
-        style={{ transition: 'stroke-dashoffset 0.4s ease' }}
-      />
-    </svg>
-  );
-}
-
-export function DayColumn({ date, isToday: _isToday, tasks, weekId, onAddTask, onUpdateTask, onDeleteTask, animationDelay = 0 }: DayColumnProps) {
+export function DayColumn({
+  date, isToday, tasks, weekId: _weekId,
+  onAddTask, onUpdateTask, onDeleteTask,
+  animationDelay = 0, addToast,
+}: DayColumnProps) {
   const dCompleted = tasks.filter(t => t.completed).length;
   const dTotal = tasks.length;
   const pct = dTotal === 0 ? 0 : Math.round((dCompleted / dTotal) * 100);
-  const isPastDay = isPast(date) && !_isToday;
   const isComplete = pct === 100 && dTotal > 0;
 
-  const handleConfetti = (e: React.SyntheticEvent) => {
-    const target = e.target as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const x = (rect.left + rect.right) / 2 / window.innerWidth;
-    const y = (rect.top + rect.bottom) / 2 / window.innerHeight;
+  const dayShort = format(date, 'eee');
+  const dayColor = DAY_COLORS[dayShort] || 'var(--brand)';
 
-    if (dCompleted + 1 === dTotal && dTotal > 0) {
+  // Fire confetti + toast only once per completion cycle
+  const prevCompleteRef = useRef(false);
+  useEffect(() => {
+    if (isComplete && !prevCompleteRef.current) {
       confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { x, y },
-        colors: ['#22c55e', '#4ade80', '#86efac']
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.6 },
+        colors: ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b'],
       });
+      addToast(`🎉 ${format(date, 'EEEE')} complete!`, 'success');
     }
+    prevCompleteRef.current = isComplete;
+  }, [isComplete, date, addToast]);
+
+  // Inline add state
+  const [adding, setAdding] = useState(false);
+  const [addText, setAddText] = useState('');
+  const addInputRef = useRef<HTMLInputElement>(null);
+
+  const commitAdd = () => {
+    if (addText.trim()) {
+      onAddTask(addText.trim());
+      setAddText('');
+    }
+    setAdding(false);
   };
+
+  useEffect(() => {
+    if (adding && addInputRef.current) addInputRef.current.focus();
+  }, [adding]);
 
   return (
     <div
       className={`day-column-enter ${isComplete ? 'column-complete' : ''}`}
       style={{
-        background: 'var(--bg-surface)',
-        border: `1px solid ${_isToday ? 'rgba(34,197,94,0.4)' : 'var(--border)'}`,
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
+        minWidth: 220,
+        maxWidth: 220,
+        background: isToday
+          ? 'var(--bg-card)'
+          : 'var(--bg-card)',
+        border: isToday ? '2px solid var(--brand)' : '1px solid var(--border)',
+        borderRadius: 'var(--radius-xl)',
+        boxShadow: isToday
+          ? '0 0 0 4px var(--brand-glow), var(--shadow-md)'
+          : 'var(--shadow-sm)',
         display: 'flex',
         flexDirection: 'column',
-        minHeight: 420,
-        transition: 'border-color 0.2s ease',
+        overflow: 'hidden',
+        scrollSnapAlign: 'start',
+        transition: 'all 0.3s ease',
         animationDelay: `${animationDelay}ms`,
-        ...(_isToday ? {
-          boxShadow: '0 0 0 1px rgba(34,197,94,0.1), inset 0 0 40px rgba(34,197,94,0.03)',
-        } : {}),
-        ...(isPastDay ? { opacity: 0.75 } : {}),
+        flexShrink: 0,
       }}
     >
-      {/* Column header */}
+      {/* ── Top color bar ── */}
       <div style={{
-        padding: '14px 16px 12px',
-        borderBottom: '1px solid var(--border)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        ...(_isToday ? {
-          background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05))',
-        } : {}),
-      }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              fontSize: 11,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              color: _isToday ? 'var(--accent)' : 'var(--text-muted)',
-              letterSpacing: '0.08em',
-            }}>
+        height: 4,
+        background: isToday
+          ? `linear-gradient(90deg, var(--brand), var(--brand-mid))`
+          : dayColor,
+        width: '100%',
+      }} />
+
+      {/* ── Header ── */}
+      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--border)' }}>
+        {/* Day name + badges */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
               {format(date, 'eeee')}
             </span>
-            {_isToday && (
+            {isToday && (
               <span style={{
-                fontSize: 9,
-                fontWeight: 700,
-                background: 'var(--accent)',
-                color: '#000',
-                borderRadius: 4,
-                padding: '2px 6px',
-                letterSpacing: '0.1em',
+                fontSize: 9, fontWeight: 800,
+                background: 'var(--brand)', color: 'white',
+                borderRadius: 6, padding: '3px 7px', letterSpacing: '0.1em',
               }}>
                 TODAY
               </span>
             )}
+            {dTotal > 0 && (
+              <span style={{
+                fontSize: 11, fontWeight: 700,
+                background: 'var(--brand-light)', color: 'var(--brand)',
+                borderRadius: 99, padding: '2px 8px',
+              }}>
+                {dTotal}
+              </span>
+            )}
           </div>
-          <div style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: 'var(--text-primary)',
-            lineHeight: 1,
-            marginTop: 4,
-          }}>
-            {format(date, 'dd MMM')}
-          </div>
+          {/* Add button */}
+          <button
+            onClick={() => setAdding(true)}
+            style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: 'var(--bg-input)',
+              border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 18, color: 'var(--text-muted)',
+              transition: 'all 0.2s ease',
+              fontFamily: "'Inter', sans-serif",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--brand)';
+              e.currentTarget.style.color = 'white';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'var(--bg-input)';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }}
+          >
+            +
+          </button>
         </div>
-        <div style={{ position: 'relative', width: 40, height: 40 }}>
-          <ProgressRing pct={pct} />
-          <span style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 10,
-            fontWeight: 700,
-            color: pct > 0 ? 'var(--accent)' : 'var(--text-muted)',
-          }}>
+
+        {/* Date + progress */}
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-muted)', marginBottom: 8 }}>
+          {format(date, 'dd MMM')}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
+            PROGRESS
+          </span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: dayColor }}>
             {pct}%
           </span>
         </div>
+        <div style={{ height: 4, borderRadius: 99, background: 'var(--bg-input)', overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', borderRadius: 99,
+            background: isToday ? 'var(--brand)' : dayColor,
+            width: `${pct}%`,
+            transition: 'width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          }} />
+        </div>
       </div>
 
-      {/* Task list */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        paddingTop: 4,
-        paddingBottom: 4,
-      }}>
-        {tasks.map(task => (
-          <TaskItem
-            key={task.id}
-            task={task}
-            onUpdateTask={onUpdateTask}
-            onDeleteTask={onDeleteTask}
-            handleConfetti={handleConfetti}
-          />
-        ))}
-        {tasks.length < 12 && (
+      {/* ── Task list ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0 4px' }}>
+        {tasks.length === 0 && !adding ? (
+          /* Empty state */
           <div style={{
-            padding: '8px 16px',
-            borderLeft: '2px dashed rgba(255,255,255,0.08)',
-            marginLeft: 16,
-            transition: 'all 0.15s ease',
+            border: '2px dashed var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '28px 16px',
+            textAlign: 'center',
+            margin: 12,
           }}>
-            <input
-              placeholder="+ Add task..."
+            <div style={{ fontSize: 26, marginBottom: 8 }}>📝</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>No tasks yet</div>
+            <button
+              onClick={() => setAdding(true)}
               style={{
-                width: '100%',
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--text-muted)',
-                fontSize: 13,
+                fontSize: 13, color: 'var(--brand)',
+                background: 'none', border: 'none',
+                cursor: 'pointer', fontWeight: 600,
+                fontFamily: "'Inter', sans-serif",
               }}
-              onFocus={e => {
-                e.currentTarget.style.color = 'var(--text-primary)';
-                const parent = e.currentTarget.parentElement;
-                if (parent) parent.style.borderColor = 'var(--accent-dim)';
-              }}
-              onBlur={e => {
-                if (e.currentTarget.value.trim()) {
-                  onAddTask(e.currentTarget.value.trim());
-                  e.currentTarget.value = '';
-                }
-                e.currentTarget.style.color = 'var(--text-muted)';
-                const parent = e.currentTarget.parentElement;
-                if (parent) parent.style.borderColor = 'rgba(255,255,255,0.08)';
+            >
+              + Add your first task
+            </button>
+          </div>
+        ) : (
+          tasks.map(task => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              dayColor={dayColor}
+              dayName={format(date, 'eee')}
+              onUpdateTask={onUpdateTask}
+              onDeleteTask={onDeleteTask}
+            />
+          ))
+        )}
+
+        {/* Inline add input */}
+        {adding ? (
+          <div style={{
+            margin: '0 12px 8px',
+            border: '1.5px solid var(--brand)',
+            borderRadius: 'var(--radius-md)',
+            padding: '10px 14px',
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: 'var(--brand-light)',
+          }}>
+            <span style={{ color: 'var(--brand)', fontSize: 14 }}>+</span>
+            <input
+              ref={addInputRef}
+              value={addText}
+              onChange={e => setAddText(e.target.value)}
+              placeholder="Task name..."
+              style={{
+                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                fontSize: 13, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif",
               }}
               onKeyDown={e => {
-                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                  onAddTask(e.currentTarget.value.trim());
-                  e.currentTarget.value = '';
-                }
+                if (e.key === 'Enter') commitAdd();
+                if (e.key === 'Escape') { setAdding(false); setAddText(''); }
               }}
+              onBlur={commitAdd}
             />
           </div>
+        ) : (
+          tasks.length > 0 && (
+            <div
+              onClick={() => setAdding(true)}
+              style={{
+                margin: '0 12px 8px',
+                border: '1.5px dashed var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '10px 14px',
+                display: 'flex', alignItems: 'center', gap: 8,
+                cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13,
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'var(--brand)';
+                e.currentTarget.style.background = 'var(--brand-light)';
+                e.currentTarget.style.color = 'var(--brand)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--text-muted)';
+              }}
+            >
+              <span style={{ fontSize: 14 }}>+</span>
+              <span>Add task...</span>
+            </div>
+          )
         )}
-      </div>
-
-      {/* Column footer */}
-      <div style={{
-        marginTop: 'auto',
-        padding: '10px 16px',
-        borderTop: '1px solid var(--border)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        fontSize: 11,
-        fontWeight: 600,
-        letterSpacing: '0.05em',
-      }}>
-        <span style={{ color: 'var(--accent)' }}>✓ {dCompleted} done</span>
-        <span style={{ color: (dTotal - dCompleted) > 0 ? 'var(--amber)' : 'var(--text-muted)' }}>
-          ○ {dTotal - dCompleted} left
-        </span>
       </div>
     </div>
   );
