@@ -62,8 +62,12 @@ export function PlannerView({ settings: _settings, habitState, taskState, weekNa
 
   const [showEditHabits, setShowEditHabits] = useState(false);
 
+  // A task belongs to the week whose columns contain its day. Matching on weekId
+  // too would hide tasks saved under a differently-derived id.
+  const weekDayIds = new Set(weekDates.map(formatDateId));
+
   // Weekly Stats
-  const weekTasks = tasks.filter(t => t.weekId === weekId);
+  const weekTasks = tasks.filter(t => weekDayIds.has(t.dayDate));
   const totalTasks = weekTasks.length;
   const completedTasks = weekTasks.filter(t => t.completed).length;
   const pendingTasks = totalTasks - completedTasks;

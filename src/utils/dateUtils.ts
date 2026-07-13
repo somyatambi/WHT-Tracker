@@ -5,7 +5,7 @@ import {
   subWeeks,
   addWeeks,
   getISOWeek,
-  getYear,
+  getISOWeekYear,
   isToday,
   isFuture,
   parseISO,
@@ -17,8 +17,12 @@ import {
   eachDayOfInterval
 } from 'date-fns';
 
-export const getWeekId = (date: Date): string => {
-  return `${getYear(date)}-W${getISOWeek(date).toString().padStart(2, '0')}`;
+// Derived from the first day of the *displayed* week, so all 7 days of a week
+// share one id. Using the raw date would split a Sunday-start week across two
+// ISO (Monday-based) week numbers.
+export const getWeekId = (date: Date, weekStartsOn: 0 | 1 = 0): string => {
+  const start = startOfWeek(date, { weekStartsOn });
+  return `${getISOWeekYear(start)}-W${getISOWeek(start).toString().padStart(2, '0')}`;
 };
 
 export const getWeekDates = (date: Date, weekStartsOn: 0 | 1 = 0): Date[] => {
